@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Multi-Daten Cockpit</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; font-family: "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 16px; }
+        h1, h2 { margin: 0 0 12px 0; }
+        h1 { font-size: 1.5rem; color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
+        h2 { font-size: 1.2rem; margin-top: 24px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .big-val { font-size: 1.5rem; font-weight: bold; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; background: rgba(148, 163, 184, 0.2); }
+        .pos { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+        .neg { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+        .btn { background: var(--accent); color: #0f172a; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; font-size: 0.85rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); padding: 4px 8px; font-size: 0.75rem; cursor: pointer; border-radius: 6px; }
+        .weather-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-top: 12px; font-size: 0.85rem; }
+        .w-day { background: rgba(15, 23, 42, 0.6); padding: 8px 4px; border-radius: 8px; }
+        input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; width: 100%; }
+        .input-group { display: flex; gap: 8px; margin-top: 8px; }
+        .chart-box { position: relative; height: 150px; width: 100%; margin-top: 10px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; padding: 6px; }
+        .stock-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .meta { font-size: 0.8rem; color: var(--muted); }
+        .target-box { background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 8px; margin: 10px 0; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+        .add-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .status { font-size: 0.9rem; color: #38bdf8; margin-bottom: 12px; font-weight: 500; }
+        .legend { font-size: 0.75rem; color: var(--muted); display: flex; gap: 12px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <h1>
+        <span>📊 Mein Multi-Daten Cockpit</span>
+        <button class="btn" onclick="location.reload()">🔄 Aktualisieren</button>
+    </h1>
+    <div id="status-bar" class="status">Warte auf Start...</div>
+
+    <!-- WETTER NIEDERVIEHBACH -->
+    <h2>🌤️ Wetter Niederviehbach (Aktuell & 7 Tage)</h2>
+    <div class="card">
+        <div class="row">
+            <div>
+                <div class="big-val" id="w-temp">-- °C</div>
+                <div class="meta" id="w-desc">Lade Wetterdaten für Niederviehbach...</div>
+            </div>
+        </div>
+        <div class="weather-days" id="w-forecast"></div>
+    </div>
+
+    <!-- ROHSTOFFE & ZINSEN -->
+    <h2>🔥 Pellets, Gold & Zinsen</h2>
+    <div class="grid">
+        <div class="card">
+            <div class="row">
+                <strong>🪙 Goldpreis (Feinunze)</strong>
+                <span class="badge" id="gold-perf">5J: --%</span>
+            </div>
+            <div class="big-val" id="gold-price">Lade...</div>
+            <div class="chart-box" id="chart-gold"></div>
+        </div>
+
+        <div class="card">
+            <strong>🌲 Holzpellets (Aktuell & 5J-Richtwert)</strong>
+            <p class="meta">Eigene aktuelle Preise eingeben (werden gespeichert):</p>
+            <div class="input-group">
+                <input type="text" id="pellet-lose" placeholder="Lose (€/t)" onchange="saveLocal('pellet-lose')">
+                <input type="text" id="pellet-1t" placeholder="1 Tonne (€)" onchange="saveLocal('pellet-1t')">
+                <input type="text" id="pellet-2t" placeholder="2 Tonnen (€)" onchange="saveLocal('pellet-2t')">
+            </div>
+            <div class="chart-box" id="chart-pellets"></div>
+            <div class="legend"><span>🟠 Richtverlauf 2021–2026 (€/Tonne)</span></div>
+            <div style="margin-top:8px;">
+                <a href="https://holzpellets24.de" target="_blank" class="btn btn-outline">Aktuelle Preise & 5J-Chart prüfen ↗</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <strong>🏦 Tagesgeld & Festgeld Zinsen</strong>
+            <p class="meta">Notiere hier deine aktuellen Top-Zinssätze:</p>
+            <div style="margin-bottom: 10px;">
+                <label class="meta">Tagesgeld (aktuell % p.a.)</label>
+                <input type="text" id="zins-tg" placeholder="z.B. 3,25 % (Trade Republic)" onchange="saveLocal('zins-tg')">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label class="meta">Festgeld (1-2 Jahre % p.a.)</label>
+                <input type="text" id="zins-fg" placeholder="z.B. 3,10 % (Bank)" onchange="saveLocal('zins-fg')">
+            </div>
+            <a href="https://finanztip.de" target="_blank" class="btn btn-outline">Tagesgeld-Vergleich ↗</a>
+            <a href="https://finanztip.de" target="_blank" class="btn btn-outline">Festgeld-Vergleich ↗</a>
+        </div>
+    </div>
+
+    <!-- INDIZES -->
+    <h2>📈 Leitindizes (Aktuell & 5 Jahre)</h2>
+    <div class="grid">
+        <div class="card">
+            <div class="row">
+                <strong>🇩🇪 DAX Performance Index</strong>
+                <span class="badge" id="dax-perf">5J: --%</span>
+            </div>
+            <div class="big-val" id="dax-price">Lade...</div>
+            <div class="chart-box" id="chart-dax"></div>
+        </div>
+        <div class="card">
+            <div class="row">
+                <strong>🇺🇸 Dow Jones Industrial</strong>
+                <span class="badge" id="dow-perf">5J: --%</span>
+            </div>
+            <div class="big-val" id="dow-price">Lade...</div>
+            <div class="chart-box" id="chart-dow"></div>
+        </div>
+    </div>
+
+    <!-- MSCI WORLD VERGLEICH & PORTFOLIO -->
+    <h2>🌍 MSCI World Vergleich & Deine 26 Aktien / ETFs (5 Jahre & Kursziele)</h2>
+    <div class="card" style="margin-bottom: 16px;">
+        <strong>➕ Neue Aktie / ETF hinzufügen</strong>
+        <div class="add-form" style="margin-top: 8px;">
+            <input type="text" id="new-name" placeholder="Name (z.B. SAP)">
+            <input type="text" id="new-ticker" placeholder="Yahoo-Ticker (z.B. SAP.DE)">
+            <input type="text" id="new-isin" placeholder="ISIN (z.B. DE0007164600)">
+            <input type="text" id="new-wkn" placeholder="WKN (z.B. 716460)">
+            <input type="text" id="new-target" placeholder="Kursziel (z.B. 240 €)">
+            <button class="btn" onclick="addStock()">Hinzufügen</button>
+        </div>
+        <div class="meta" style="margin-top: 6px;">Hinweis: Die <span style="color:#eab308;">gelbe Linie</span> zeigt den <strong>MSCI World (URTH)</strong> als 5-Jahres-Vergleich, die <span style="color:#38bdf8;">blaue Linie</span> die Aktie.</div>
+    </div>
+
+    <div class="grid" id="stocks-container"></div>
+
+<script>
+window.onerror = function(msg, url, line) {
+    document.getElementById('status-bar').innerText = "⚠️ Hinweis: " + msg + " (Zeile " + line + ")";
+};
+
+const defaultStocks = Array.of(
+    { name: "DroneShield Ltd", ticker: "DRO.AX", isin: "AU000000DRO2", wkn: "A2DMAA", target: "1,20 € (Analysten Ø)" },
+    { name: "Ballard Power Systems", ticker: "BLDP", isin: "CA0585861085", wkn: "A0RENB", target: "2,10 $ (Analysten Ø)" },
+    { name: "Mercedes-Benz Group", ticker: "MBG.DE", isin: "DE0007100000", wkn: "710000", target: "62,50 € (Analysten Ø)" },
+    { name: "Volkswagen AG Vz.", ticker: "VOW3.DE", isin: "DE0007664039", wkn: "766403", target: "110,20 € (Analysten Ø)" },
+    { name: "Allianz SE", ticker: "ALV.DE", isin: "DE0008404005", wkn: "840400", target: "495,00 € (Analysten Ø)" },
+    { name: "Bayer AG", ticker: "BAYN.DE", isin: "DE000BAY0017", wkn: "BAY001", target: "52,00 € (Analysten Ø)" },
+    { name: "Daimler Truck Holding", ticker: "DTG.DE", isin: "DE000DTR0CK8", wkn: "DTR0CK", target: "51,30 € (Analysten Ø)" },
+    { name: "HENSOLDT AG", ticker: "HAG.DE", isin: "DE000HAG0005", wkn: "HAG000", target: "44,00 € (Analysten Ø)" },
+    { name: "Porsche Automobil Holding", ticker: "PAH3.DE", isin: "DE000PAH0038", wkn: "PAH003", target: "36,50 € (Analysten Ø)" },
+    { name: "RENK Group AG", ticker: "R3NK.DE", isin: "DE000RENK730", wkn: "RENK73", target: "62,88 € (Analysten Ø)" },
+    { name: "Siemens Healthineers", ticker: "SHL.DE", isin: "DE000SHL1006", wkn: "SHL100", target: "58,00 € (Analysten Ø)" },
+    { name: "ITM Power plc", ticker: "ITM.L", isin: "GB00B0130H42", wkn: "A0B57L", target: "0,95 £ (Analysten Ø)" },
